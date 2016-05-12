@@ -4,6 +4,34 @@ const knex = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+router.get('/me', function (req, res, next) {
+  // get authorization header
+  // 'Bearer sdkjsdafjklsdfjer2qe12' or nothing
+  if (req.headers.authorization) {
+    // parse with string logic
+     const token = req.headers.authorization.split(' ')[1];
+     // decode token
+     const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+     // find user that matches that id
+     knex('users').where({id: payload.id}).first()
+      .then(function (user) {
+       if (user) {
+         // return the user object
+         res.json({id: user.id, name: user.name})
+       } else {
+         res.status(403).json({
+           error: "Invalid ID"
+         })
+       }
+     })
+   } else {
+  res.status(403).json({
+    error: "WHERE IS YOUR MOTHERFUCKING TOKEN??"
+  })
+}
+})
+
 router.post('/signup', function(req, res, next) {
   const errors = []
 
@@ -40,6 +68,7 @@ router.post('/signup', function(req, res, next) {
           .then(function (users) {
             //  send back id, email, name, token
             const user = users[0];
+            // create token
             const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
             res.json({
               id: user.id,
@@ -56,8 +85,6 @@ router.post('/signup', function(req, res, next) {
       }
     })
   }
-
-//  create a token
 });
 
 module.exports = router;
